@@ -10,6 +10,7 @@ uint32_t log_2(uint32_t num){
         num=num>>1;
         result+=1;
     }
+
     return result;
 }
 
@@ -40,7 +41,7 @@ struct cache * cache_create(struct cache_config config,struct cache * lower_leve
         new_cache->offset_bits = log_2(config.line_size);
         new_cache->tag_bits = config.address_bits - new_cache->index_bits - new_cache->offset_bits;
         new_cache->offset_mask = (1<<(new_cache->offset_bits)) - 1;
-        new_cache->index_mask = (1<<(new_cache->index_bits - 1))*(1<<(new_cache->offset_bits));
+        new_cache->index_mask = ((1<<(new_cache->index_bits)) - 1)*(1<<(new_cache->offset_bits));
         new_cache->tag_mask = ((1<<(new_cache->tag_bits)) - 1)*(1<<(new_cache->index_bits + new_cache->offset_bits));
         new_cache->lines = malloc(config.lines*sizeof(struct cache_line));
         for(uint32_t i = 0; i < config.lines; i++){
