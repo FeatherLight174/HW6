@@ -160,16 +160,17 @@ bool cache_write_byte(struct cache * cache, uint32_t addr, uint8_t byte){
 
                 return true;
             }
-            else if(cache->lines[i].valid==0){
+
+        }
+        for(uint32_t i = index_read; i <= index_read + (cache->config.lines/cache->config.ways)*(cache->config.ways-1); i+=cache->config.lines/cache->config.ways){
+            if(cache->lines[i].valid==0){
                 cache->lines[i].tag = tag_read;
                 cache->lines[i].data[offset_read] = byte;
                 cache->lines[i].last_access = get_timestamp();
                 cache->lines[i].valid = 1;
-
                 return false;
             }
         }
-        
 
         uint32_t index = LRU(cache, index_read);
 
