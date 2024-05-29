@@ -13,7 +13,18 @@ uint32_t log_2(uint32_t num){
     return result;
 }
 
-
+uint32_t LRU(struct cache * cache, uint32_t index){
+    uint64_t access = cache->lines->last_access;
+    uint32_t LRU_index = index;
+    for(uint32_t i = 0; i < cache->config.ways; i++){
+        uint32_t current_index = i*(cache->config.lines/cache->config.ways)+index;
+        if(cache->lines[current_index].last_access<access){
+            access = cache->lines[current_index].last_access;
+            LRU_index = current_index;
+        }
+    }
+    return LRU_index; 
+}
 
 /* Create a cache simulator according to the config */
 struct cache * cache_create(struct cache_config config,struct cache * lower_level){
@@ -30,10 +41,10 @@ struct cache * cache_create(struct cache_config config,struct cache * lower_leve
         new_cache->tag_bits = config.address_bits - new_cache->index_bits - new_cache->offset_bits;
         new_cache->offset_mask = (1<<(new_cache->offset_bits)) - 1;
         new_cache->index_mask = (1<<(new_cache->index_bits - 1))*(1<<(new_cache->offset_bits));
-        new_cache->tag_mask = (1<<(new_cache->tag_bits - 1))*(1<<(new_cache->index_bits + new_cache->offset_bits));
+        new_cache->tag_mask = ((1<<(new_cache->tag_bits)) - 1)*(1<<(new_cache->index_bits + new_cache->offset_bits));
         new_cache->lines = malloc(config.lines*sizeof(struct cache_line));
         for(uint32_t i = 0; i < config.lines; i++){
-            new_cache->lines[i].data = malloc(config.line_size*sizeof(uint8_t * ));
+            new_cache->lines[i].data = malloc(config.line_size*sizeof(uint8_t));
             if((new_cache->lines[i].data)==NULL){
                 return NULL;
             }
@@ -60,14 +71,13 @@ void cache_destroy(struct cache* cache){
     /*YOUR CODE HERE*/
     for(uint32_t i = 0; i < cache->config.ways; i++){
         for(int j = 0; j < 1<<(cache->index_bits); j++){
-            uint32_t num = i*(1<<(cache->index_bits))+j;
+            uint32_t num = i*(cache->config.lines/cache->config.ways)+j;
             if(cache->lines[num].dirty*cache->lines[num].valid==1){
                 uint32_t addr = (cache->lines[num].tag<<(cache->index_bits + cache->offset_bits))|(j << cache->offset_bits);
-                mem_store(cache->lines[i].data, addr, cache->config.line_size);
+                mem_store(cache->lines[i].data, addr, cache->config.line_size*sizeof(uint8_t));
             }
-            if(cache->lines[num].data!=NULL){
-                free(cache->lines[num].data);
-            }
+
+            free(cache->lines[num].data);
         }
     }
     free(cache->lines);
@@ -79,6 +89,7 @@ bool cache_read_byte(struct cache * cache, uint32_t addr, uint8_t *byte){
     /*YOUR CODE HERE*/
     uint32_t tag_read = (addr & cache->tag_mask)>>(cache->index_bits+cache->offset_bits);
     uint32_t index_read = (addr & cache->index_mask)>>(cache->offset_bits);
+    uint32_t offset_read = addr & cache->offset_mask;
     if(cache->lower_cache==NULL){
         for(uint32_t i = index_read; i <= index_read + (cache->config.lines/cache->config.ways)*(cache->config.ways-1); i+=cache->config.lines/cache->config.ways){
             if((tag_read==cache->lines[i].tag)&&(cache->lines[i].valid==1)){
@@ -86,11 +97,33 @@ bool cache_read_byte(struct cache * cache, uint32_t addr, uint8_t *byte){
                 return true;
             }
             else if(cache->lines[i].valid==0){
-                cache->lines[i].data = byte;
+                *byte = cache->lines[i].data[offset_read];
                 cache->lines[i].last_access = get_timestamp();
                 cache->lines[i].valid = 1;
+                return false;
             }
+            
         }
+        
+        uint32_t index = LRU(cache, index_read);
+
+        if(cache->lines[index].dirty){
+            uint32_t addr = (cache->lines[index].tag<<(cache->index_bits + cache->offset_bits))|(index_read<< cache->offset_bits);
+            mem_store(cache->lines[index].data, addr, cache->config.line_size*sizeof(uint8_t));
+            cache->lines[index].dirty = 0;
+        }
+        mem_load(cache->lines->data, addr, cache->config.line_size*sizeof(uint8_t));
+
+        cache->lines[index].last_access=get_timestamp();
+        cache->lines[index].tag = tag_read;
+        cache->lines[index].valid = 1;
+        *byte = cache->lines[index].data[offset_read];
+        return false;
+        
+
+
+
+
         /*uint64_t access = cache->lines[(1 + index_read)*cache->config.ways-1].last_access;
         for(int i = index_read + (cache->config.lines/cache->config.ways)*(cache->config.ways-1); i >= index_read; i-=cache->config.lines/cache->config.ways){
             if(cache->lines[i-cache->config.lines/cache->config.ways].last_access<=access){
@@ -106,48 +139,52 @@ bool cache_read_byte(struct cache * cache, uint32_t addr, uint8_t *byte){
             }
         }*/
     }
-    cache_write_byte(cache, addr, *byte);
-    return false;
+    return 0;
 }
 /* Write one byte into a specific address. return hit=true/miss=false*/
 bool cache_write_byte(struct cache * cache, uint32_t addr, uint8_t byte){
     /*YOUR CODE HERE*/
     uint32_t tag_read = (addr & cache->tag_mask)>>(cache->index_bits+cache->offset_bits);
     uint32_t index_read = (addr & cache->index_mask)>>(cache->offset_bits);
+    uint32_t offset_read = addr & cache->offset_mask;
     if(cache->lower_cache==NULL){
         for(uint32_t i = index_read; i <= index_read + (cache->config.lines/cache->config.ways)*(cache->config.ways-1); i+=cache->config.lines/cache->config.ways){
             if((tag_read==cache->lines[i].tag)&&(cache->lines[i].valid==1)){
                 cache->lines[i].dirty=1;
+                cache->lines[i].tag = tag_read;
+                cache->lines[i].data[offset_read] = byte;
                 cache->lines[i].last_access=get_timestamp();
+
                 return true;
             }
             else if(cache->lines[i].valid==0){
-                cache->lines[i].data = &byte;
+                cache->lines[i].tag = tag_read;
+                cache->lines[i].data[offset_read] = byte;
                 cache->lines[i].last_access = get_timestamp();
                 cache->lines[i].valid = 1;
+
                 return false;
             }
         }
         uint8_t * load = malloc(cache->config.line_size);
-        mem_load(load, addr, cache->config.line_size);
-        uint64_t access = cache->lines[(1 + index_read)*cache->config.ways-1].last_access;
+        
 
-        for(uint32_t i = index_read + (cache->config.lines/cache->config.ways)*(cache->config.ways-1); i >= index_read; i-=cache->config.lines/cache->config.ways){
-            if(cache->lines[i-cache->config.lines/cache->config.ways].last_access<=access){
-                access = cache->lines[i-cache->config.lines/cache->config.ways].last_access;
-            }
+        uint32_t index = LRU(cache, index_read);
+
+
+        uint32_t addr = (cache->lines[index].tag<<(cache->index_bits + cache->offset_bits))|(index_read<< cache->offset_bits);
+        if(cache->lines[index].dirty==1){                
+            mem_store(cache->lines[index].data, addr, cache->config.line_size*sizeof(uint8_t));
+            cache->lines[index].dirty = 0;       
         }
-        for(uint32_t i = index_read; (i <= index_read + (cache->config.lines/cache->config.ways)*(cache->config.ways-1))&&(cache->lines[i].last_access==access); i+=cache->config.lines/cache->config.ways){
-            uint32_t addr = (cache->lines[i].tag<<(cache->index_bits + cache->offset_bits))|(index_read<< cache->offset_bits);
-            if(cache->lines[i].dirty==1){                
-                mem_store(cache->lines[i].data, addr, cache->config.line_size);
-                cache->lines[i].dirty = 0;       
-            }
-            cache->lines[i].last_access = get_timestamp();
-            cache->lines[i].tag = tag_read;
-            cache->lines[i].valid = 1;
-            return false;
-        }
+        mem_load(cache->lines[index].data, addr, cache->config.line_size);
+        cache->lines[index].data[offset_read] = byte;
+        cache->lines[index].last_access = get_timestamp();
+        cache->lines[index].tag = tag_read;
+        cache->lines[index].valid = 1;
+        free(load);
+        return false;
+        
 
     }
     return 0;
