@@ -110,20 +110,32 @@ bool cache_read_byte(struct cache * cache, uint32_t addr, uint8_t *byte){
         }
         
         uint32_t index = LRU(cache, index_read);
+        if(cache->config.write_back){
+            if(cache->lines[index].dirty){
+                uint32_t addr = (cache->lines[index].tag<<(cache->index_bits + cache->offset_bits))|(index_read<< cache->offset_bits);
+                
+                mem_store(cache->lines[index].data, addr, cache->config.line_size*sizeof(uint8_t));
+                cache->lines[index].dirty = 0;
+            }
+            mem_load(cache->lines->data, addr, cache->config.line_size*sizeof(uint8_t));
 
-        if(cache->lines[index].dirty){
-            uint32_t addr = (cache->lines[index].tag<<(cache->index_bits + cache->offset_bits))|(index_read<< cache->offset_bits);
-            mem_store(cache->lines[index].data, addr, cache->config.line_size*sizeof(uint8_t));
-            cache->lines[index].dirty = 0;
+            cache->lines[index].last_access=get_timestamp();
+            cache->lines[index].tag = tag_read;
+            cache->lines[index].valid = 1;
+            *byte = cache->lines[index].data[offset_read];
+            return false;
         }
-        mem_load(cache->lines->data, addr, cache->config.line_size*sizeof(uint8_t));
+        else{
+            uint32_t addr = (cache->lines[index].tag<<(cache->index_bits + cache->offset_bits))|(index_read<< cache->offset_bits); 
+            mem_store(cache->lines[index].data, addr, cache->config.line_size*sizeof(uint8_t));
+            mem_load(cache->lines->data, addr, cache->config.line_size*sizeof(uint8_t));
 
-        cache->lines[index].last_access=get_timestamp();
-        cache->lines[index].tag = tag_read;
-        cache->lines[index].valid = 1;
-        *byte = cache->lines[index].data[offset_read];
-        return false;
-        
+            cache->lines[index].last_access=get_timestamp();
+            cache->lines[index].tag = tag_read;
+            cache->lines[index].valid = 1;
+            *byte = cache->lines[index].data[offset_read];
+            return false;
+        }
 
 
 
