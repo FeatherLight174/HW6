@@ -53,7 +53,6 @@ struct cache {
     struct cache * lower_cache;
 };
 
-
 /*DO NOT MODIFY FUNCTION DECLARATIONS BELOW*/
 
 struct cache * cache_create(struct cache_config config,struct cache * lower_cache);

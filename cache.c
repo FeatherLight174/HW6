@@ -4,17 +4,17 @@
 #include <assert.h>
 
 
-
-
-
 uint32_t log_2(uint32_t num){
     uint32_t result = 0;
     while(num!=1){
-        num=num<<1;
+        num=num>>1;
         result+=1;
     }
     return result;
 }
+
+
+
 /* Create a cache simulator according to the config */
 struct cache * cache_create(struct cache_config config,struct cache * lower_level){
     /*YOUR CODE HERE*/
@@ -29,8 +29,9 @@ struct cache * cache_create(struct cache_config config,struct cache * lower_leve
         new_cache->offset_bits = log_2(config.line_size);
         new_cache->tag_bits = config.address_bits - new_cache->index_bits - new_cache->offset_bits;
         new_cache->offset_mask = (1<<(new_cache->offset_bits)) - 1;
-        new_cache->index_bits = (1<<(new_cache->index_bits - 1))*(1<<(new_cache->offset_bits));
+        new_cache->index_mask = (1<<(new_cache->index_bits - 1))*(1<<(new_cache->offset_bits));
         new_cache->tag_mask = (1<<(new_cache->tag_bits - 1))*(1<<(new_cache->index_bits + new_cache->offset_bits));
+        new_cache->lines = malloc(config.lines*sizeof(struct cache_line));
         for(uint32_t i = 0; i < config.lines; i++){
             new_cache->lines[i].data = malloc(config.line_size);
             if((new_cache->lines[i].data)==NULL){
@@ -42,7 +43,7 @@ struct cache * cache_create(struct cache_config config,struct cache * lower_leve
             new_cache->lines[i].valid = 0;
         }
     }
-    return 0;
+    return new_cache;
 }
 
 /* 
@@ -67,6 +68,7 @@ void cache_destroy(struct cache* cache){
             free(cache->lines[num].data);
         }
     }
+    free(cache->lines);
     free(cache);
 }
 
@@ -127,7 +129,7 @@ bool cache_write_byte(struct cache * cache, uint32_t addr, uint8_t byte){
         uint8_t * load = malloc(cache->config.line_size);
         mem_load(load, addr, cache->config.line_size);
         uint64_t access = cache->lines[(1 + index_read)*cache->config.ways-1].last_access;
-        
+
         for(uint32_t i = index_read + (cache->config.lines/cache->config.ways)*(cache->config.ways-1); i >= index_read; i-=cache->config.lines/cache->config.ways){
             if(cache->lines[i-cache->config.lines/cache->config.ways].last_access<=access){
                 access = cache->lines[i-cache->config.lines/cache->config.ways].last_access;
