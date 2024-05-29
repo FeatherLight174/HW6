@@ -76,15 +76,15 @@ void cache_destroy(struct cache* cache){
             uint32_t num = i*(cache->config.lines/cache->config.ways)+j;
             if(cache->lines[num].dirty*cache->lines[num].valid==1){
                 uint32_t addr = (cache->lines[num].tag<<(cache->index_bits + cache->offset_bits))|(j << cache->offset_bits);
-                mem_store(cache->lines[num].data, addr, cache->config.line_size*sizeof(uint8_t));
+                mem_store(cache->lines[num].data, addr, cache->config.line_size);
             }
             free(cache->lines[num].data);
         }
     }
     free(cache->lines);
-    if(cache->lower_cache!=NULL){
+    /*if(cache->lower_cache!=NULL){
         cache_destroy(cache->lower_cache);
-    }
+    }*/
     free(cache);
 }
 
@@ -114,10 +114,10 @@ bool cache_read_byte(struct cache * cache, uint32_t addr, uint8_t *byte){
             if(cache->lines[index].dirty){
                 uint32_t addr = (cache->lines[index].tag<<(cache->index_bits + cache->offset_bits))|(index_read<< cache->offset_bits);
                 
-                mem_store(cache->lines[index].data, addr, cache->config.line_size*sizeof(uint8_t));
+                mem_store(cache->lines[index].data, addr, cache->config.line_size);
                 cache->lines[index].dirty = 0;
             }
-            mem_load(cache->lines->data, addr, cache->config.line_size*sizeof(uint8_t));
+            mem_load(cache->lines->data, addr, cache->config.line_size);
 
             cache->lines[index].last_access=get_timestamp();
             cache->lines[index].tag = tag_read;
@@ -127,8 +127,8 @@ bool cache_read_byte(struct cache * cache, uint32_t addr, uint8_t *byte){
         }
         else{
             uint32_t addr = (cache->lines[index].tag<<(cache->index_bits + cache->offset_bits))|(index_read<< cache->offset_bits); 
-            mem_store(cache->lines[index].data, addr, cache->config.line_size*sizeof(uint8_t));
-            mem_load(cache->lines->data, addr, cache->config.line_size*sizeof(uint8_t));
+            mem_store(cache->lines[index].data, addr, cache->config.line_size);
+            mem_load(cache->lines->data, addr, cache->config.line_size);
 
             cache->lines[index].last_access=get_timestamp();
             cache->lines[index].tag = tag_read;
