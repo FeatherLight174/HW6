@@ -190,7 +190,7 @@ bool cache_write_byte(struct cache * cache, uint32_t addr, uint8_t byte){
             mem_store(temp, addr, cache->config.line_size*sizeof(uint8_t));
             cache->lines[index].dirty = 0;       
         }
-        
+        free(temp);
         cache->lines[index].data[offset_read] = byte;
         cache->lines[index].last_access = get_timestamp();
         cache->lines[index].tag = tag_read;
