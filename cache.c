@@ -80,6 +80,9 @@ void cache_destroy(struct cache* cache){
         }
     }
     free(cache->lines);
+    if(cache->lower_cache!=NULL){
+        free(cache->lower_cache);
+    }
     free(cache);
 }
 
