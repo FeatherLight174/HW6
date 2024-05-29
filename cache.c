@@ -122,23 +122,10 @@ bool cache_read_byte(struct cache * cache, uint32_t addr, uint8_t *byte){
 
 
 
-
-        /*uint64_t access = cache->lines[(1 + index_read)*cache->config.ways-1].last_access;
-        for(int i = index_read + (cache->config.lines/cache->config.ways)*(cache->config.ways-1); i >= index_read; i-=cache->config.lines/cache->config.ways){
-            if(cache->lines[i-cache->config.lines/cache->config.ways].last_access<=access){
-                access = cache->lines[i-cache->config.lines/cache->config.ways].last_access;
-            }
-        }
-        for(int i = index_read; (i <= index_read + (cache->config.lines/cache->config.ways)*(cache->config.ways-1))&&(cache->lines[i].last_access==access); i+=cache->config.lines/cache->config.ways){
-            if(cache->lines[i].dirty==1){
-                uint32_t addr = (cache->lines[i].tag<<(cache->index_bits + cache->offset_bits))|(index_read<< cache->offset_bits);
-                mem_store(cache->lines[i].data, addr, cache->config.line_size);
-                free(cache->lines[i].data);
-
-            }
-        }*/
     }
-    return 0;
+    else{
+        return false;
+    }
 }
 /* Write one byte into a specific address. return hit=true/miss=false*/
 bool cache_write_byte(struct cache * cache, uint32_t addr, uint8_t byte){
@@ -186,7 +173,9 @@ bool cache_write_byte(struct cache * cache, uint32_t addr, uint8_t byte){
         
 
     }
-    return 0;
+    else{
+        return false;
+    }
 
 
 
