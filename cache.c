@@ -45,7 +45,8 @@ struct cache * cache_create(struct cache_config config,struct cache * lower_leve
         new_cache->tag_mask = ((1<<(new_cache->tag_bits)) - 1)*(1<<(new_cache->index_bits + new_cache->offset_bits));
         new_cache->lines = malloc(config.lines*sizeof(struct cache_line));
         for(uint32_t i = 0; i < config.lines; i++){
-            new_cache->lines[i].data = calloc(1,config.line_size*sizeof(uint8_t));
+            new_cache->lines[i].data = malloc(config.line_size*sizeof(uint8_t));
+            memset(new_cache->lines[i].data,0,config.line_size*sizeof(uint8_t));
             if((new_cache->lines[i].data)==NULL){
                 return NULL;
             }
