@@ -42,7 +42,7 @@ struct cache * cache_create(struct cache_config config,struct cache * lower_leve
         new_cache->tag_bits = config.address_bits - new_cache->index_bits - new_cache->offset_bits;
         new_cache->offset_mask = (1<<(new_cache->offset_bits)) - 1;
         new_cache->index_mask = ((1<<(new_cache->index_bits)) - 1)*(1<<(new_cache->offset_bits));
-        new_cache->tag_mask = ((1<<(new_cache->tag_bits)) - 1)*(1<<(new_cache->index_bits + new_cache->offset_bits));
+        new_cache->tag_mask = ((1<<(new_cache->tag_bits-1))-1+(1<<(new_cache->tag_bits-1)))*(1<<(new_cache->index_bits + new_cache->offset_bits));
         new_cache->lines = malloc(config.lines*sizeof(struct cache_line));
         for(uint32_t i = 0; i < config.lines; i++){
             new_cache->lines[i].data = malloc(config.line_size*sizeof(uint8_t));
