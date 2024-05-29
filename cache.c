@@ -177,11 +177,20 @@ bool cache_write_byte(struct cache * cache, uint32_t addr, uint8_t byte){
 
 
         uint32_t addr = (cache->lines[index].tag<<(cache->index_bits + cache->offset_bits))|(index_read<< cache->offset_bits);
+        
+        uint8_t* temp = malloc(cache->config.line_size*sizeof(uint8_t));
+        memcpy(temp, cache->lines[index].data, cache->config.line_size*sizeof(uint8_t));
+
+        mem_load(cache->lines[index].data, addr, cache->config.line_size);
+
+
+
+
         if(cache->lines[index].dirty==1){                
-            mem_store(cache->lines[index].data, addr, cache->config.line_size*sizeof(uint8_t));
+            mem_store(temp, addr, cache->config.line_size*sizeof(uint8_t));
             cache->lines[index].dirty = 0;       
         }
-        mem_load(cache->lines[index].data, addr, cache->config.line_size);
+        
         cache->lines[index].data[offset_read] = byte;
         cache->lines[index].last_access = get_timestamp();
         cache->lines[index].tag = tag_read;
