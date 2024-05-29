@@ -74,9 +74,8 @@ void cache_destroy(struct cache* cache){
             uint32_t num = i*(cache->config.lines/cache->config.ways)+j;
             if(cache->lines[num].dirty*cache->lines[num].valid==1){
                 uint32_t addr = (cache->lines[num].tag<<(cache->index_bits + cache->offset_bits))|(j << cache->offset_bits);
-                mem_store(cache->lines[i].data, addr, cache->config.line_size*sizeof(uint8_t));
+                mem_store(cache->lines[num].data, addr, cache->config.line_size*sizeof(uint8_t));
             }
-
             free(cache->lines[num].data);
         }
     }
