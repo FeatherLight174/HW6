@@ -152,7 +152,6 @@ bool cache_write_byte(struct cache * cache, uint32_t addr, uint8_t byte){
                 return false;
             }
         }
-        uint8_t * load = malloc(cache->config.line_size);
         
 
         uint32_t index = LRU(cache, index_read);
@@ -168,7 +167,6 @@ bool cache_write_byte(struct cache * cache, uint32_t addr, uint8_t byte){
         cache->lines[index].last_access = get_timestamp();
         cache->lines[index].tag = tag_read;
         cache->lines[index].valid = 1;
-        free(load);
         return false;
         
 
