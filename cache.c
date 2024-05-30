@@ -135,41 +135,24 @@ bool cache_read_byte(struct cache * cache, uint32_t addr, uint8_t *byte){
         }
 
         uint32_t index = LRU(cache, index_read);
-        if(cache->config.write_back){
-            uint8_t* temp = malloc(cache->config.line_size*sizeof(uint8_t));
-            uint32_t addr_ = (cache->lines[index].tag<<(cache->index_bits + cache->offset_bits))+(index_read<< cache->offset_bits); 
-            memcpy(temp, cache->lines[index].data, cache->config.line_size*sizeof(uint8_t));
-            if(cache->lines[index].dirty==1){                
-                mem_store(temp, addr_, cache->config.line_size*sizeof(uint8_t));
-                cache->lines[index].dirty = 0;       
-            }
-            mem_load(cache->lines[index].data, addr-offset_read, cache->config.line_size);
-            free(temp);
 
-            cache->lines[index].last_access=get_timestamp();
-            cache->lines[index].tag = tag_read;
-            cache->lines[index].valid = 1;
-            *byte = cache->lines[index].data[offset_read];
-            return false;
-        }
-        else{
-            uint32_t addr_ = (cache->lines[index].tag<<(cache->index_bits + cache->offset_bits))+(index_read<< cache->offset_bits); 
-            uint8_t* temp = malloc(cache->config.line_size*sizeof(uint8_t));
-            memcpy(temp, cache->lines[index].data, cache->config.line_size*sizeof(uint8_t));
-            mem_store(temp, addr_, cache->config.line_size*sizeof(uint8_t));
-            mem_load(cache->lines[index].data, addr-offset_read, cache->config.line_size);
-            free(temp);
+        uint32_t addr_ = (cache->lines[index].tag<<(cache->index_bits + cache->offset_bits))+(index_read<< cache->offset_bits); 
 
-            cache->lines[index].last_access=get_timestamp();
-            cache->lines[index].tag = tag_read;
-            cache->lines[index].valid = 1;
-            *byte = cache->lines[index].data[offset_read];
-            return false;
+        if(cache->lines[index].dirty){
+            mem_store(cache->lines[index].data, addr_, cache->config.line_size);
+            cache->lines[index].dirty = 0;
         }
-    }
-    else{
+        mem_load(cache->lines[index].data, addr-offset_read, cache->config.line_size);
+
+
+        cache->lines[index].last_access=get_timestamp();
+        cache->lines[index].tag = tag_read;
+        cache->lines[index].valid = 1;
+        *byte = cache->lines[index].data[offset_read];
         return false;
     }
+    return 0;
+    
 }
 
 /* Write one byte into a specific address. return hit=true/miss=false*/
@@ -188,6 +171,12 @@ bool cache_write_byte(struct cache * cache, uint32_t addr, uint8_t byte){
                 cache->lines[i].tag = tag_read;
                 cache->lines[i].data[offset_read] = byte;
                 cache->lines[i].last_access=get_timestamp();
+                if(cache->config.write_back){
+                    cache->lines[i].dirty = 1;
+                    }
+                else{
+                    mem_store(cache->lines[i].data, addr-offset_read, cache->config.line_size*sizeof(uint8_t));
+                }
                 return true;
             }
         }
@@ -198,46 +187,37 @@ bool cache_write_byte(struct cache * cache, uint32_t addr, uint8_t byte){
                 cache->lines[i].data[offset_read] = byte;
                 cache->lines[i].last_access = get_timestamp();
                 cache->lines[i].valid = 1;
+                if(cache->config.write_back){
+                    cache->lines[i].dirty = 1;
+                    }
+                else{
+                    mem_store(cache->lines[i].data, addr-offset_read, cache->config.line_size*sizeof(uint8_t));
+                }
                 return false;
             }
         }
-        if(cache->config.write_back){
-            uint32_t index = LRU(cache, index_read);
-            uint8_t* temp = malloc(cache->config.line_size*sizeof(uint8_t));
-            uint32_t addr_ = (cache->lines[index].tag<<(cache->index_bits + cache->offset_bits))+(index_read<< cache->offset_bits); 
-            memcpy(temp, cache->lines[index].data, cache->config.line_size*sizeof(uint8_t));
+        uint32_t index = LRU(cache, index_read);
+        
+        uint32_t addr_ = (cache->lines[index].tag<<(cache->index_bits + cache->offset_bits))+(index_read<< cache->offset_bits); 
+        if(cache->config.write_back&&cache->lines[index].dirty){
+            
+                                      
+            mem_store(cache->lines[index].data, addr_, cache->config.line_size*sizeof(uint8_t));
+            cache->lines[index].dirty = 0;       
+        }
+        mem_load(cache->lines[index].data, addr-offset_read, cache->config.line_size);
+        cache->lines[index].data[offset_read] = byte;
+        cache->lines[index].last_access = get_timestamp();
+        cache->lines[index].tag = tag_read;
+        cache->lines[index].valid = 1;
 
-            if(cache->lines[index].dirty==1){                
-                mem_store(temp, addr_, cache->config.line_size*sizeof(uint8_t));
-                cache->lines[index].dirty = 0;       
-            }
-            mem_load(cache->lines[index].data, addr-offset_read, cache->config.line_size);
-            free(temp);
-            cache->lines[index].data[offset_read] = byte;
-            cache->lines[index].last_access = get_timestamp();
-            cache->lines[index].tag = tag_read;
-            cache->lines[index].valid = 1;
-            return false;
+        if(cache->config.write_back){
+            cache->lines[index].dirty = 1;
         }
         else{
-            uint32_t index = LRU(cache, index_read);
-            uint32_t addr_ = (cache->lines[index].tag<<(cache->index_bits + cache->offset_bits))+(index_read<< cache->offset_bits);
-            uint8_t* temp = malloc(cache->config.line_size*sizeof(uint8_t));
-
-            memcpy(temp, cache->lines[index].data, cache->config.line_size*sizeof(uint8_t));
-            mem_store(temp, addr_, cache->config.line_size*sizeof(uint8_t));
-            mem_load(cache->lines[index].data, addr-offset_read, cache->config.line_size);
-            free(temp);
-
-            cache->lines[index].data[offset_read] = byte;
-            cache->lines[index].last_access = get_timestamp();
-            cache->lines[index].tag = tag_read;
-            cache->lines[index].valid = 1;
-            return false;
+            mem_store(cache->lines[index].data, addr-offset_read, cache->config.line_size*sizeof(uint8_t));
         }
-    }
-
-    else{
         return false;
     }
+    return 0;
 }
