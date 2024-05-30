@@ -127,7 +127,7 @@ bool cache_read_byte(struct cache * cache, uint32_t addr, uint8_t *byte){
     uint32_t index_read = (addr & cache->index_mask)>>(cache->offset_bits);
     uint32_t offset_read = addr & cache->offset_mask;
 
-        for(uint32_t i = index_read; i <= index_read + (cache->config.lines/cache->config.ways-1)*(cache->config.ways); i+=cache->config.lines/cache->config.ways){
+        for(uint32_t i = index_read; i <= index_read + (cache->config.lines/cache->config.ways)*(cache->config.ways-1); i+=cache->config.lines/cache->config.ways){
             if((tag_read==cache->lines[i].tag)&&(cache->lines[i].valid==1)){
                 cache->lines[i].last_access=get_timestamp();
                 *byte = cache->lines[i].data[offset_read];
@@ -148,7 +148,6 @@ bool cache_read_byte(struct cache * cache, uint32_t addr, uint8_t *byte){
 
 
         uint32_t index = LRU(cache, index_read);
-
         uint32_t addr_ = (cache->lines[index].tag<<(cache->index_bits + cache->offset_bits))+(index_read<< cache->offset_bits); 
 
         if(cache->config.write_back&&cache->lines[index].dirty){
@@ -156,16 +155,11 @@ bool cache_read_byte(struct cache * cache, uint32_t addr, uint8_t *byte){
             cache->lines[index].dirty = 0;
         }
         mem_load(cache->lines[index].data, addr-offset_read, cache->config.line_size);
-
-
         cache->lines[index].last_access=get_timestamp();
         cache->lines[index].tag = tag_read;
         cache->lines[index].valid = 1;
         *byte = cache->lines[index].data[offset_read];
         return false;
-    
-
-    
 }
 
 /* Write one byte into a specific address. return hit=true/miss=false*/
@@ -177,22 +171,7 @@ bool cache_write_byte(struct cache * cache, uint32_t addr, uint8_t byte){
     uint32_t tag_read = (addr & cache->tag_mask)>>(cache->index_bits+cache->offset_bits);
     uint32_t index_read = (addr & cache->index_mask)>>(cache->offset_bits);
     uint32_t offset_read = addr & cache->offset_mask;
-
-        for(uint32_t i = index_read; i <= index_read + (cache->config.lines/cache->config.ways-1)*(cache->config.ways); i+=cache->config.lines/cache->config.ways){
-            if((tag_read==cache->lines[i].tag)&&(cache->lines[i].valid==1)){
-
-                cache->lines[i].data[offset_read] = byte;
-                cache->lines[i].last_access=get_timestamp();
-                if(cache->config.write_back){
-                    cache->lines[i].dirty = 1;
-                    }
-                else{
-                    mem_store(cache->lines[i].data, addr-offset_read, cache->config.line_size*sizeof(uint8_t));
-                }
-                return true;
-            }
-        }
-        for(uint32_t i = index_read; i <= index_read + (cache->config.lines/cache->config.ways-1)*(cache->config.ways); i+=cache->config.lines/cache->config.ways){
+        for(uint32_t i = index_read; i <= index_read + (cache->config.lines/cache->config.ways)*(cache->config.ways-1); i+=cache->config.lines/cache->config.ways){
             if(cache->lines[i].valid==0){
                 mem_load(cache->lines[i].data, addr-offset_read, cache->config.line_size);
                 cache->lines[i].tag = tag_read;
@@ -208,9 +187,24 @@ bool cache_write_byte(struct cache * cache, uint32_t addr, uint8_t byte){
                 return false;
             }
         }
-        uint32_t index = LRU(cache, index_read);
+        for(uint32_t i = index_read; i <= index_read + (cache->config.lines/cache->config.ways)*(cache->config.ways-1); i+=cache->config.lines/cache->config.ways){
+            if((tag_read==cache->lines[i].tag)&&(cache->lines[i].valid==1)){
+
+                cache->lines[i].data[offset_read] = byte;
+                cache->lines[i].last_access=get_timestamp();
+                if(cache->config.write_back){
+                    cache->lines[i].dirty = 1;
+                    }
+                else{
+                    mem_store(cache->lines[i].data, addr-offset_read, cache->config.line_size*sizeof(uint8_t));
+                }
+                return true;
+            }
+        }
         
+        uint32_t index = LRU(cache, index_read);        
         uint32_t addr_ = (cache->lines[index].tag<<(cache->index_bits + cache->offset_bits))+(index_read<< cache->offset_bits); 
+        
         if(cache->config.write_back&&cache->lines[index].dirty){                              
             mem_store(cache->lines[index].data, addr_, cache->config.line_size*sizeof(uint8_t));
             cache->lines[index].dirty = 0;       
