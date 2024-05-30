@@ -55,6 +55,7 @@ struct cache * cache_create(struct cache_config config,struct cache * lower_leve
         new_cache->lines = malloc(config.lines*sizeof(struct cache_line));
 
         if(new_cache->lines == NULL){
+            cache_destroy(new_cache);
             return NULL;
         }
 
