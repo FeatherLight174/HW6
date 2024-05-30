@@ -75,8 +75,8 @@ void cache_destroy(struct cache* cache){
         for(int j = 0; j < 1<<(cache->index_bits); j++){
             uint32_t num = i*(cache->config.lines/cache->config.ways)+j;
             if(cache->lines[num].dirty*cache->lines[num].valid==1){
-                uint32_t addr = (cache->lines[num].tag<<(cache->index_bits + cache->offset_bits))|(j << cache->offset_bits);
-                mem_store(cache->lines[num].data, addr, cache->config.line_size);
+                uint32_t addr_ = (cache->lines[num].tag<<(cache->index_bits + cache->offset_bits))+(j << cache->offset_bits);
+                mem_store(cache->lines[num].data, addr_, cache->config.line_size);
             }
             free(cache->lines[num].data);
         }
@@ -113,13 +113,14 @@ bool cache_read_byte(struct cache * cache, uint32_t addr, uint8_t *byte){
         uint32_t index = LRU(cache, index_read);
         if(cache->config.write_back){
             uint8_t* temp = malloc(cache->config.line_size*sizeof(uint8_t));
+            uint32_t addr_ = (cache->lines[index].tag<<(cache->index_bits + cache->offset_bits))|(index_read<< cache->offset_bits); 
             memcpy(temp, cache->lines[index].data, cache->config.line_size*sizeof(uint8_t));
 
             mem_load(cache->lines[index].data, addr, cache->config.line_size);
 
 
             if(cache->lines[index].dirty==1){                
-                mem_store(temp, addr, cache->config.line_size*sizeof(uint8_t));
+                mem_store(temp, addr_, cache->config.line_size*sizeof(uint8_t));
                 cache->lines[index].dirty = 0;       
             }
             free(temp);
@@ -131,12 +132,12 @@ bool cache_read_byte(struct cache * cache, uint32_t addr, uint8_t *byte){
             return false;
         }
         else{
-            uint32_t addr = (cache->lines[index].tag<<(cache->index_bits + cache->offset_bits))|(index_read<< cache->offset_bits); 
+            uint32_t addr_ = (cache->lines[index].tag<<(cache->index_bits + cache->offset_bits))|(index_read<< cache->offset_bits); 
             uint8_t* temp = malloc(cache->config.line_size*sizeof(uint8_t));
             memcpy(temp, cache->lines[index].data, cache->config.line_size*sizeof(uint8_t));
 
             mem_load(cache->lines[index].data, addr, cache->config.line_size);
-            mem_store(temp, addr, cache->config.line_size*sizeof(uint8_t));
+            mem_store(temp, addr_, cache->config.line_size*sizeof(uint8_t));
             free(temp);
 
             cache->lines[index].last_access=get_timestamp();
@@ -183,12 +184,13 @@ bool cache_write_byte(struct cache * cache, uint32_t addr, uint8_t byte){
         if(cache->config.write_back){
             uint32_t index = LRU(cache, index_read);
             uint8_t* temp = malloc(cache->config.line_size*sizeof(uint8_t));
+            uint32_t addr_ = (cache->lines[index].tag<<(cache->index_bits + cache->offset_bits))|(index_read<< cache->offset_bits); 
             memcpy(temp, cache->lines[index].data, cache->config.line_size*sizeof(uint8_t));
 
             mem_load(cache->lines[index].data, addr, cache->config.line_size);
 
             if(cache->lines[index].dirty==1){                
-                mem_store(temp, addr, cache->config.line_size*sizeof(uint8_t));
+                mem_store(temp, addr_, cache->config.line_size*sizeof(uint8_t));
                 cache->lines[index].dirty = 0;       
             }
             free(temp);
@@ -202,14 +204,14 @@ bool cache_write_byte(struct cache * cache, uint32_t addr, uint8_t byte){
             uint32_t index = LRU(cache, index_read);
 
 
-            uint32_t addr = (cache->lines[index].tag<<(cache->index_bits + cache->offset_bits))|(index_read<< cache->offset_bits);
+            uint32_t addr_ = (cache->lines[index].tag<<(cache->index_bits + cache->offset_bits))|(index_read<< cache->offset_bits);
             
             uint8_t* temp = malloc(cache->config.line_size*sizeof(uint8_t));
             memcpy(temp, cache->lines[index].data, cache->config.line_size*sizeof(uint8_t));
 
             mem_load(cache->lines[index].data, addr, cache->config.line_size);
                
-            mem_store(temp, addr, cache->config.line_size*sizeof(uint8_t));
+            mem_store(temp, addr_, cache->config.line_size*sizeof(uint8_t));
       
 
             free(temp);
