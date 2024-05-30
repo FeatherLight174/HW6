@@ -142,7 +142,7 @@ bool cache_read_byte(struct cache * cache, uint32_t addr, uint8_t *byte){
 
         uint32_t addr_ = (cache->lines[index].tag<<(cache->index_bits + cache->offset_bits))+(index_read<< cache->offset_bits); 
 
-        if(cache->lines[index].dirty){
+        if(cache->config.write_back&&cache->lines[index].dirty){
             mem_store(cache->lines[index].data, addr_, cache->config.line_size);
             cache->lines[index].dirty = 0;
         }
