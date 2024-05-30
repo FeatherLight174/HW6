@@ -118,7 +118,7 @@ bool cache_read_byte(struct cache * cache, uint32_t addr, uint8_t *byte){
     uint32_t tag_read = (addr & cache->tag_mask)>>(cache->index_bits+cache->offset_bits);
     uint32_t index_read = (addr & cache->index_mask)>>(cache->offset_bits);
     uint32_t offset_read = addr & cache->offset_mask;
-    if(cache->lower_cache==NULL){
+
         for(uint32_t i = index_read; i <= index_read + (cache->config.lines/cache->config.ways)*(cache->config.ways-1); i+=cache->config.lines/cache->config.ways){
             if((tag_read==cache->lines[i].tag)&&(cache->lines[i].valid==1)){
                 cache->lines[i].last_access=get_timestamp();
@@ -155,8 +155,8 @@ bool cache_read_byte(struct cache * cache, uint32_t addr, uint8_t *byte){
         cache->lines[index].valid = 1;
         *byte = cache->lines[index].data[offset_read];
         return false;
-    }
-    return 0;
+    
+
     
 }
 
@@ -169,7 +169,7 @@ bool cache_write_byte(struct cache * cache, uint32_t addr, uint8_t byte){
     uint32_t tag_read = (addr & cache->tag_mask)>>(cache->index_bits+cache->offset_bits);
     uint32_t index_read = (addr & cache->index_mask)>>(cache->offset_bits);
     uint32_t offset_read = addr & cache->offset_mask;
-    if(cache->lower_cache==NULL){
+
         for(uint32_t i = index_read; i <= index_read + (cache->config.lines/cache->config.ways)*(cache->config.ways-1); i+=cache->config.lines/cache->config.ways){
             if((tag_read==cache->lines[i].tag)&&(cache->lines[i].valid==1)){
 
@@ -203,9 +203,7 @@ bool cache_write_byte(struct cache * cache, uint32_t addr, uint8_t byte){
         uint32_t index = LRU(cache, index_read);
         
         uint32_t addr_ = (cache->lines[index].tag<<(cache->index_bits + cache->offset_bits))+(index_read<< cache->offset_bits); 
-        if(cache->config.write_back&&cache->lines[index].dirty){
-            
-                                      
+        if(cache->config.write_back&&cache->lines[index].dirty){                              
             mem_store(cache->lines[index].data, addr_, cache->config.line_size*sizeof(uint8_t));
             cache->lines[index].dirty = 0;       
         }
@@ -222,6 +220,6 @@ bool cache_write_byte(struct cache * cache, uint32_t addr, uint8_t byte){
             mem_store(cache->lines[index].data, addr-offset_read, cache->config.line_size*sizeof(uint8_t));
         }
         return false;
-    }
-    return 0;
+    
+
 }
