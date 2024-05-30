@@ -126,7 +126,7 @@ bool cache_read_byte(struct cache * cache, uint32_t addr, uint8_t *byte){
             }   
         }
 
-        for(uint32_t i = index_read; i <= index_read + (cache->config.lines/cache->config.ways)*(cache->config.ways-1); i+=cache->config.lines/cache->config.ways){
+        /*for(uint32_t i = index_read; i <= index_read + (cache->config.lines/cache->config.ways)*(cache->config.ways-1); i+=cache->config.lines/cache->config.ways){
             if(cache->lines[i].valid==0){
                 mem_load(cache->lines[i].data, addr-offset_read , cache->config.line_size);
                 *byte = cache->lines[i].data[offset_read];
@@ -135,7 +135,7 @@ bool cache_read_byte(struct cache * cache, uint32_t addr, uint8_t *byte){
                 cache->lines[i].tag = tag_read;
                 return false;
             }
-        }
+        }*/
 
 
         uint32_t index = LRU(cache, index_read);
