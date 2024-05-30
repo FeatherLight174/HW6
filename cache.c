@@ -58,6 +58,7 @@ struct cache * cache_create(struct cache_config config,struct cache * lower_leve
             new_cache->lines[i].data = malloc(config.line_size*sizeof(uint8_t));
             memset(new_cache->lines[i].data,0,config.line_size*sizeof(uint8_t));
             if((new_cache->lines[i].data)==NULL){
+                cache_destroy(new_cache);
                 return NULL;
             }
             new_cache->lines[i].dirty = 0;
