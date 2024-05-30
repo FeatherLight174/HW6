@@ -167,7 +167,7 @@ bool cache_write_byte(struct cache * cache, uint32_t addr, uint8_t byte){
     if(cache->lower_cache==NULL){
         for(uint32_t i = index_read; i <= index_read + (cache->config.lines/cache->config.ways)*(cache->config.ways-1); i+=cache->config.lines/cache->config.ways){
             if((tag_read==cache->lines[i].tag)&&(cache->lines[i].valid==1)){
-                cache->lines[i].dirty=1;
+
                 cache->lines[i].tag = tag_read;
                 cache->lines[i].data[offset_read] = byte;
                 cache->lines[i].last_access=get_timestamp();
@@ -189,7 +189,7 @@ bool cache_write_byte(struct cache * cache, uint32_t addr, uint8_t byte){
                 cache->lines[i].valid = 1;
                 if(cache->config.write_back){
                     cache->lines[i].dirty = 1;
-                    }
+                }
                 else{
                     mem_store(cache->lines[i].data, addr-offset_read, cache->config.line_size*sizeof(uint8_t));
                 }
