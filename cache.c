@@ -129,6 +129,7 @@ bool cache_read_byte(struct cache * cache, uint32_t addr, uint8_t *byte){
                 *byte = cache->lines[i].data[offset_read];
                 cache->lines[i].last_access = get_timestamp();
                 cache->lines[i].valid = 1;
+                cache->lines[i].tag = tag_read;
                 return false;
             }
         }
