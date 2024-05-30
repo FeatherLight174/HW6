@@ -117,13 +117,14 @@ bool cache_read_byte(struct cache * cache, uint32_t addr, uint8_t *byte){
             uint32_t addr_ = (cache->lines[index].tag<<(cache->index_bits + cache->offset_bits))+(index_read<< cache->offset_bits); 
             memcpy(temp, cache->lines[index].data, cache->config.line_size*sizeof(uint8_t));
 
-            mem_load(cache->lines[index].data, addr, cache->config.line_size);
+            
 
 
             if(cache->lines[index].dirty==1){                
                 mem_store(temp, addr_, cache->config.line_size*sizeof(uint8_t));
                 cache->lines[index].dirty = 0;       
             }
+            mem_load(cache->lines[index].data, addr, cache->config.line_size);
             free(temp);
 
             cache->lines[index].last_access=get_timestamp();
@@ -137,8 +138,9 @@ bool cache_read_byte(struct cache * cache, uint32_t addr, uint8_t *byte){
             uint8_t* temp = malloc(cache->config.line_size*sizeof(uint8_t));
             memcpy(temp, cache->lines[index].data, cache->config.line_size*sizeof(uint8_t));
 
-            mem_load(cache->lines[index].data, addr, cache->config.line_size);
+
             mem_store(temp, addr_, cache->config.line_size*sizeof(uint8_t));
+            mem_load(cache->lines[index].data, addr, cache->config.line_size);
             free(temp);
 
             cache->lines[index].last_access=get_timestamp();
@@ -189,12 +191,13 @@ bool cache_write_byte(struct cache * cache, uint32_t addr, uint8_t byte){
             uint32_t addr_ = (cache->lines[index].tag<<(cache->index_bits + cache->offset_bits))+(index_read<< cache->offset_bits); 
             memcpy(temp, cache->lines[index].data, cache->config.line_size*sizeof(uint8_t));
 
-            mem_load(cache->lines[index].data, addr, cache->config.line_size);
+            
 
             if(cache->lines[index].dirty==1){                
                 mem_store(temp, addr_, cache->config.line_size*sizeof(uint8_t));
                 cache->lines[index].dirty = 0;       
             }
+            mem_load(cache->lines[index].data, addr, cache->config.line_size);
             free(temp);
             cache->lines[index].data[offset_read] = byte;
             cache->lines[index].last_access = get_timestamp();
@@ -211,10 +214,10 @@ bool cache_write_byte(struct cache * cache, uint32_t addr, uint8_t byte){
             uint8_t* temp = malloc(cache->config.line_size*sizeof(uint8_t));
             memcpy(temp, cache->lines[index].data, cache->config.line_size*sizeof(uint8_t));
 
-            mem_load(cache->lines[index].data, addr, cache->config.line_size);
+            
                
             mem_store(temp, addr_, cache->config.line_size*sizeof(uint8_t));
-      
+            mem_load(cache->lines[index].data, addr, cache->config.line_size);
 
             free(temp);
             cache->lines[index].data[offset_read] = byte;
