@@ -54,13 +54,19 @@ struct cache * cache_create(struct cache_config config,struct cache * lower_leve
         new_cache->tag_mask = ((1<<(new_cache->tag_bits-1))-1+(1<<(new_cache->tag_bits-1)))*(1<<(new_cache->index_bits + new_cache->offset_bits));
         new_cache->lines = malloc(config.lines*sizeof(struct cache_line));
 
+        if(new_cache->lines == NULL){
+            return NULL;
+        }
+
         for(uint32_t i = 0; i < config.lines; i++){
             new_cache->lines[i].data = malloc(config.line_size*sizeof(uint8_t));
             memset(new_cache->lines[i].data,0,config.line_size*sizeof(uint8_t));
+
             if((new_cache->lines[i].data)==NULL){
                 cache_destroy(new_cache);
                 return NULL;
             }
+            
             new_cache->lines[i].dirty = 0;
             new_cache->lines[i].last_access = 0;
             new_cache->lines[i].tag = 0;
@@ -97,11 +103,13 @@ void cache_destroy(struct cache* cache){
     for(uint32_t i = 0; i < cache->config.ways; i++){
         for(int j = 0; j < 1<<(cache->index_bits); j++){
             uint32_t num = i*(cache->config.lines/cache->config.ways)+j;
-            if(cache->lines[num].dirty*cache->lines[num].valid==1){
+            if(cache->lines[num].dirty&&cache->lines[num].valid){
                 uint32_t addr_ = (cache->lines[num].tag<<(cache->index_bits + cache->offset_bits))+(j << cache->offset_bits);
                 mem_store(cache->lines[num].data, addr_, cache->config.line_size);
             }
-            free(cache->lines[num].data);
+            if(cache->lines[num].data){
+                free(cache->lines[num].data);
+            }        
         }
     }
     free(cache->lines);
