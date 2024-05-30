@@ -127,7 +127,7 @@ bool cache_read_byte(struct cache * cache, uint32_t addr, uint8_t *byte){
     uint32_t index_read = (addr & cache->index_mask)>>(cache->offset_bits);
     uint32_t offset_read = addr & cache->offset_mask;
 
-        for(uint32_t i = index_read; i <= index_read + (cache->config.lines/cache->config.ways)*(cache->config.ways-1); i+=cache->config.lines/cache->config.ways){
+        for(uint32_t i = index_read; i <= index_read + (cache->config.lines/cache->config.ways-1)*(cache->config.ways); i+=cache->config.lines/cache->config.ways){
             if((tag_read==cache->lines[i].tag)&&(cache->lines[i].valid==1)){
                 cache->lines[i].last_access=get_timestamp();
                 *byte = cache->lines[i].data[offset_read];
@@ -178,7 +178,7 @@ bool cache_write_byte(struct cache * cache, uint32_t addr, uint8_t byte){
     uint32_t index_read = (addr & cache->index_mask)>>(cache->offset_bits);
     uint32_t offset_read = addr & cache->offset_mask;
 
-        for(uint32_t i = index_read; i <= index_read + (cache->config.lines/cache->config.ways)*(cache->config.ways-1); i+=cache->config.lines/cache->config.ways){
+        for(uint32_t i = index_read; i <= index_read + (cache->config.lines/cache->config.ways-1)*(cache->config.ways); i+=cache->config.lines/cache->config.ways){
             if((tag_read==cache->lines[i].tag)&&(cache->lines[i].valid==1)){
 
                 cache->lines[i].data[offset_read] = byte;
@@ -192,7 +192,7 @@ bool cache_write_byte(struct cache * cache, uint32_t addr, uint8_t byte){
                 return true;
             }
         }
-        for(uint32_t i = index_read; i <= index_read + (cache->config.lines/cache->config.ways)*(cache->config.ways-1); i+=cache->config.lines/cache->config.ways){
+        for(uint32_t i = index_read; i <= index_read + (cache->config.lines/cache->config.ways-1)*(cache->config.ways); i+=cache->config.lines/cache->config.ways){
             if(cache->lines[i].valid==0){
                 mem_load(cache->lines[i].data, addr-offset_read, cache->config.line_size);
                 cache->lines[i].tag = tag_read;
