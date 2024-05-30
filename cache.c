@@ -20,7 +20,7 @@ uint32_t log_2(uint32_t num){
 }
 
 uint32_t LRU(struct cache * cache, uint32_t index){
-    uint64_t access = cache->lines->last_access;
+    uint64_t access = cache->lines[0].last_access;
     uint32_t LRU_index = index;
     for(uint32_t i = 0; i < cache->config.ways; i++){
         uint32_t current_index = i*(cache->config.lines/cache->config.ways)+index;
